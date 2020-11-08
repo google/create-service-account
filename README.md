@@ -36,9 +36,9 @@ using. To get started, first select the tool that you are planning to use.
 
 *   [Google Workspace Migration for Microsoft Exchange (GWMME)](#google-workspace-migration-for-microsoft-exchange-gwmme)
 *   [Google Workspace Migrate (GWM)](#google-workspace-migrate-gwm)
-*   [G Suite Password Sync](#password-sync)
+*   [Password Sync](#password-sync)
 
-## Google Workspace Migration for Microsoft Exchange (GWMME) {#google-workspace-migration-for-microsoft-exchange-gwmme}
+## Google Workspace Migration for Microsoft Exchange (GWMME)
 
 To create an authorized service account for Google Workspace Migration for
 Microsoft Exchange, copy and paste the command below in Cloud Shell.
@@ -50,7 +50,7 @@ Microsoft Exchange, copy and paste the command below in Cloud Shell.
 python3 <(curl -s -S -L https://git.io/gwmme-create-service-account)
 ```
 
-## Google Workspace Migrate (GWM) {#google-workspace-migrate-gwm}
+## Google Workspace Migrate (GWM)
 
 To create an authorized service account for Google Workspace Migration, copy and
 paste the command below in Cloud Shell.
@@ -62,7 +62,7 @@ paste the command below in Cloud Shell.
 python3 <(curl -s -S -L https://git.io/gwm-create-service-account)
 ```
 
-## G Suite Password Sync {#password-sync}
+## Password Sync
 
 To create an authorized service account for Password Sync, copy and paste the
 command below in Cloud Shell.
