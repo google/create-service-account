@@ -223,6 +223,12 @@ async def verify_api_access():
     for api in APIS:
       api_name = service_name = ""
       raw_api_response = ""
+      if api == "admin.googleapis.com":
+        # Admin SDK does not have a corresponding service.
+        api_name = "Admin SDK"
+        raw_api_response = execute_api_request(
+            f"https://content-admin.googleapis.com/admin/directory/v1/users/{admin_user_email}?fields=isAdmin",
+            token)
       if api == "calendar-json.googleapis.com":
         api_name = service_name = "Calendar"
         raw_api_response = execute_api_request(
