@@ -44,7 +44,7 @@ VERSION = "1"
 
 # GCP project IDs must only contain lowercase letters, digits, or hyphens.
 # Projct IDs must start with a letter. Spaces or punctuation are not allowed.
-TOOL_NAME = "GSPS"
+TOOL_NAME = "PasswordSync"
 TOOL_NAME_FRIENDLY = "Password Sync"
 TOOL_HELP_CENTER_URL = "https://support.google.com/a/answer/7378726"
 # List of APIs to enable and verify.
