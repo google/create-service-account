@@ -91,6 +91,10 @@ DWD_URL_FORMAT = ("https://admin.google.com/ac/owl/domainwidedelegation?"
 USER_AGENT = f"{TOOL_NAME}_create_service_account_v{VERSION}"
 KEY_FILE = (f"/tmp/{TOOL_NAME.lower()}-service-account-key-"
             f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.json")
+OAUTH_CONSENT_SCREEN_URL_FORMAT = ("https://console.cloud.google.com/apis/"
+                                  "credentials/consent?project={}")
+CREATE_OAUTH_WEB_CLIENT_ID_URL = ("https://support.google.com/workspacemigrate/"
+                                 "answer/9222992")
 
 
 async def create_project():
@@ -227,8 +231,8 @@ async def verify_api_access():
         # Admin SDK does not have a corresponding service.
         api_name = "Admin SDK"
         raw_api_response = execute_api_request(
-            f"https://content-admin.googleapis.com/admin/directory/v1/users/{admin_user_email}?fields=isAdmin",
-            token)
+            "https://www.googleapis.com/admin/directory/v1/users/"
+            f"{admin_user_email}?fields=isAdmin", token)
       if api == "calendar-json.googleapis.com":
         api_name = service_name = "Calendar"
         raw_api_response = execute_api_request(
@@ -488,6 +492,11 @@ async def main():
         "resources to which the service account has access. You should treat "
         "it just like you would a password.")
 
+  project_id = await get_project_id()
+  print("\nNext, follow the instructions to create the OAuth web client "
+        f"ID for project {project_id}. You can create this by navigating to "
+        f"{OAUTH_CONSENT_SCREEN_URL_FORMAT.format(project_id)}. The "
+        f"instructions can be found here: {CREATE_OAUTH_WEB_CLIENT_ID_URL}.\n")
 
 if __name__ == "__main__":
   asyncio.run(main())
