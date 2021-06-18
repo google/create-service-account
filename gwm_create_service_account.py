@@ -271,7 +271,7 @@ async def verify_api_access():
     if disabled_apis:
       disabled_api_message = (
           "The {} API is not enabled. Please enable it by clicking "
-          "https://console.developers.google.com/apis/api/{}/overview?project={}."
+          "<https://console.developers.google.com/apis/api/{}/overview?project={}>."
       )
       for api_name in disabled_apis:
         api_id = disabled_apis[api_name]
@@ -287,7 +287,7 @@ async def verify_api_access():
       print("\nIf this is expected, then please continue. If this is not "
             "expected, then please ensure that these services are enabled for "
             "your users by visiting "
-            "https://admin.google.com/ac/appslist/core.\n")
+            "<https://admin.google.com/ac/appslist/core>.\n")
 
     if retry_api_verification:
       answer = input("Press Enter to try again, 'c' to continue, or 'n' to "
@@ -469,7 +469,7 @@ async def main():
       "account\n5. Create a service account key\n\nIn the end, you will be "
       "prompted to download the service account key. This key can then be used "
       f"for {TOOL_NAME}.\n\nIf you would like to perform these steps manually, "
-      f"then you can follow the instructions at {TOOL_HELP_CENTER_URL}.\n\n"
+      f"then you can follow the instructions at <{TOOL_HELP_CENTER_URL}>.\n\n"
       "Press Enter to continue or 'n' to exit:")
 
   if response.lower() == "n":
@@ -494,9 +494,9 @@ async def main():
 
   project_id = await get_project_id()
   print("\nNext, follow the instructions to create the OAuth web client "
-        f"ID for project {project_id}. You can create this by navigating to "
-        f"{OAUTH_CONSENT_SCREEN_URL_FORMAT.format(project_id)}. The "
-        f"instructions can be found here: {CREATE_OAUTH_WEB_CLIENT_ID_URL}.\n")
+        f"ID for project {project_id}. You can create this by going to "
+        f"<{OAUTH_CONSENT_SCREEN_URL_FORMAT.format(project_id)}>. The "
+        f"instructions can be found here: <{CREATE_OAUTH_WEB_CLIENT_ID_URL}>.\n")
 
 if __name__ == "__main__":
   asyncio.run(main())
