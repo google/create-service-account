@@ -45,7 +45,7 @@ VERSION = "1"
 # Projct IDs must start with a letter. Spaces or punctuation are not allowed.
 TOOL_NAME = "GWM"
 TOOL_NAME_FRIENDLY = "Google Workspace Migrate"
-TOOL_HELP_CENTER_URL = "https://support.google.com/workspacemigrate/answer/10048241"
+TOOL_HELP_CENTER_URL = "https://support.google.com/workspacemigrate/answer/10839762"
 # List of APIs to enable and verify.
 APIS = [
     # If admin.googleapis.com is to be included, then it must be the first in
