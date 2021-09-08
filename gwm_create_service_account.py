@@ -89,7 +89,7 @@ SCOPES = [
 DWD_URL_FORMAT = ("https://admin.google.com/ac/owl/domainwidedelegation?"
                   "overwriteClientId=true&clientIdToAdd={}&clientScopeToAdd={}")
 USER_AGENT = f"{TOOL_NAME}_create_service_account_v{VERSION}"
-KEY_FILE = (f"/tmp/{TOOL_NAME.lower()}-service-account-key-"
+KEY_FILE = (f"{TOOL_NAME.lower()}-service-account-key-"
             f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.json")
 OAUTH_CONSENT_SCREEN_URL_FORMAT = ("https://console.cloud.google.com/apis/"
                                   "credentials/consent?project={}")
@@ -305,6 +305,13 @@ async def download_service_account_key():
   await retryable_command(command)
 
 
+async def delete_key():
+  input("\nPress any key to continue...")
+  logging.debug(f"Deleting key file ${KEY_FILE}...")
+  command = f"shred -u {KEY_FILE}"
+  await retryable_command(command)  
+
+
 async def enable_api(api):
   command = f"gcloud services enable {api}"
   await retryable_command(command)
@@ -484,6 +491,7 @@ async def main():
   await verify_service_account_authorization()
   await verify_api_access()
   await download_service_account_key()
+  await delete_key()
 
   logging.info("Done! \u2705")
   print("\nIf you have already downloaded the file, then you may close this "
