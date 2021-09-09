@@ -280,7 +280,7 @@ async def download_service_account_key():
 
 
 async def delete_key():
-  input("\nPress any key after you have downloaded the file.")
+  input("\nPress Enter after you have downloaded the file.")
   logging.debug(f"Deleting key file ${KEY_FILE}...")
   command = f"shred -u {KEY_FILE}"
   await retryable_command(command)  
