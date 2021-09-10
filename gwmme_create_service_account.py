@@ -29,6 +29,7 @@ import datetime
 import json
 import logging
 import os
+import pathlib
 import sys
 import time
 import urllib.parse
@@ -69,7 +70,7 @@ SCOPES = [
 DWD_URL_FORMAT = ("https://admin.google.com/ac/owl/domainwidedelegation?"
                   "overwriteClientId=true&clientIdToAdd={}&clientScopeToAdd={}")
 USER_AGENT = f"{TOOL_NAME}_create_service_account_v{VERSION}"
-KEY_FILE = (f"/tmp/{TOOL_NAME.lower()}-service-account-key-"
+KEY_FILE = (f"{pathlib.Path.home()}/{TOOL_NAME.lower()}-service-account-key-"
             f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.json")
 
 
@@ -278,6 +279,13 @@ async def download_service_account_key():
   await retryable_command(command)
 
 
+async def delete_key():
+  input("\nPress Enter after you have downloaded the file.")
+  logging.debug(f"Deleting key file ${KEY_FILE}...")
+  command = f"shred -u {KEY_FILE}"
+  await retryable_command(command)  
+
+
 async def enable_api(api):
   command = f"gcloud services enable {api}"
   await retryable_command(command)
@@ -457,6 +465,7 @@ async def main():
   await verify_service_account_authorization()
   await verify_api_access()
   await download_service_account_key()
+  await delete_key()
 
   logging.info("Done! \u2705")
   print("\nIf you have already downloaded the file, then you may close this "
