@@ -137,7 +137,7 @@ async def create_service_account():
 
 
 async def create_service_account_key():
-  logging.info("Creating service acount key...")
+  logging.info("Creating service account key...")
   service_account_email = await get_service_account_email()
   await retryable_command(f"gcloud iam service-accounts keys create {KEY_FILE} "
                           f"--iam-account={service_account_email}")
