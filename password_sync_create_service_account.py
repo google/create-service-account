@@ -41,7 +41,7 @@ from httplib2 import Http
 from google.auth.exceptions import RefreshError
 from google.oauth2 import service_account
 
-VERSION = "1"
+VERSION = "2"
 
 # GCP project IDs must only contain lowercase letters, digits, or hyphens.
 # Projct IDs must start with a letter. Spaces or punctuation are not allowed.
@@ -62,6 +62,8 @@ USER_AGENT = f"{TOOL_NAME}_create_service_account_v{VERSION}"
 KEY_FILE = (f"{pathlib.Path.home()}/{TOOL_NAME.lower()}-service-account-key-"
             f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.json")
 
+# Zero width space character, to be used to separate URLs from punctuation.
+ZWSP = "\u200b"
 
 async def create_project():
   logging.info("Creating project...")
@@ -439,8 +441,8 @@ async def main():
       "account\n5. Create a service account key\n\nIn the end, you will be "
       "prompted to download the service account key. This key can then be used "
       f"for {TOOL_NAME}.\n\nIf you would like to perform these steps manually, "
-      f"then you can follow the instructions at {TOOL_HELP_CENTER_URL}.\n\n"
-      "Press Enter to continue or 'n' to exit:")
+      f"then you can follow the instructions at {TOOL_HELP_CENTER_URL}{ZWSP}."
+      "\n\nPress Enter to continue or 'n' to exit:")
 
   if response.lower() == "n":
     sys.exit(0)
