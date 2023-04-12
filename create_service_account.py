@@ -259,7 +259,7 @@ async def verify_service_account_authorization():
       print(f"\n{authorize_url}\n")
       answer = input("Press Enter to try again, 'c' to continue, or 'n' to "
                      "cancel: ")
-      if answer.lower == "c":
+      if answer.lower() == "c":
         scopes_are_authorized = True
       if answer.lower() == "n":
         sys.exit(0)
