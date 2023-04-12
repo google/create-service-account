@@ -59,6 +59,7 @@ APIS = [
     "drive.googleapis.com",
     "groupsmigration.googleapis.com",
     "groupssettings.googleapis.com",
+    "people.googleapis.com",
     "sheets.googleapis.com",
     "tasks.googleapis.com"
 ]
