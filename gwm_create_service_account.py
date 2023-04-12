@@ -248,6 +248,12 @@ async def verify_api_access():
         raw_api_response = execute_api_request(
             "https://www.google.com/m8/feeds/contacts/a.com/full/invalid_contact",
             token)
+      if api == "people.googleapis.com":
+        # People (Contacts) does not have a corresponding service.
+        api_name = "People"
+        raw_api_response = execute_api_request(
+            "https://people.googleapis.com/v1/people/me/connections?pageSize=1&personFields=metadata",
+            token)
       if api == "drive.googleapis.com":
         api_name = service_name = "Drive"
         raw_api_response = execute_api_request(
@@ -274,8 +280,9 @@ async def verify_api_access():
 
     if disabled_apis:
       disabled_api_message = (
-          "The {} API is not enabled. Please enable it by clicking "
-          "<https://console.developers.google.com/apis/api/{}/overview?project={}>."
+          "- The {} API is not enabled. Please enable it by clicking "
+          "https://console.developers.google.com/apis/api/{}/overview?project={}"
+          f"{ZWSP}."
       )
       for api_name in disabled_apis:
         api_id = disabled_apis[api_name]
@@ -326,6 +333,7 @@ def verify_scope_authorization(subject, scope):
     get_access_token_for_scopes(subject, [scope])
     return True
   except RefreshError:
+    logging.debug("Can't get token for scope %s", scope, exc_info=True)
     return False
   except:
     e = sys.exc_info()[0]
