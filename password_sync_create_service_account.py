@@ -166,7 +166,7 @@ async def verify_service_account_authorization():
       print("\nTo fix this, please click the following link. After clicking "
             "'Authorize', return here to try again. If you are confident "
             "that these scopes have already been added, then you may continue "
-            "now. If you encouter OAuth errors in the migration tool, then "
+            "now. If you encounter OAuth errors in the migration tool, then "
             "you may need to wait for the changes to propagate. Propagation "
             "generally takes less than 1 hour. However, in rare cases, it can "
             "take up to 24 hours.")
