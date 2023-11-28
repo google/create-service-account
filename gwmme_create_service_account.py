@@ -59,7 +59,7 @@ APIS = [
 ]
 # List of scopes required for service account.
 SCOPES = [
-    "https://www.google.com/m8/feeds",
+    "https://www.googleapis.com/auth/contacts`",
     "https://www.googleapis.com/auth/admin.directory.group.readonly",
     "https://www.googleapis.com/auth/admin.directory.user",
     "https://www.googleapis.com/auth/apps.groups.migration",
