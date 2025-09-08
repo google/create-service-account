@@ -494,7 +494,8 @@ async def retryable_command(command,
     elif suppress_errors:
       return (stdout, stderr, return_code)
     else:
-      logging.critical("Failed to execute command: %s\n\nstderr:\n`%s`", stderr.decode())
+      logging.critical("Failed to execute command: %s\n\nstderr:\n`%s`",
+                       command, stderr.decode())
       sys.exit(return_code)
 
 
