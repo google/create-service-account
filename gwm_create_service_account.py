@@ -170,7 +170,7 @@ async def handle_org_policies():
                f"--project={project_id} --effective")
     stdout, _, return_code = await retryable_command(
         command, suppress_errors=True)
-    if return_code == 0 and "enforced: true" in stdout.decode().lower():
+    if return_code == 0 and "enforce: true" in stdout.decode().lower():
       enforced_policies.append(policy)
 
   if not enforced_policies:

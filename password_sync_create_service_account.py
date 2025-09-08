@@ -134,7 +134,7 @@ async def handle_org_policies():
                f"--project={project_id} --effective")
     stdout, _, return_code = await retryable_command(
         command, suppress_errors=True)
-    if return_code == 0 and "enforced: true" in stdout.decode().lower():
+    if return_code == 0 and "enforce: true" in stdout.decode().lower():
       enforced_policies.append(policy)
 
   if not enforced_policies:
@@ -301,6 +301,12 @@ async def verify_api_access():
         api_name = "Contacts"
         raw_api_response = execute_api_request(
             "https://www.google.com/m8/feeds/contacts/a.com/full/invalid_contact",
+            token)
+      if api == "people.googleapis.com":
+        # People (Contacts) does not have a corresponding service.
+        api_name = "People"
+        raw_api_response = execute_api_request(
+            "https://people.googleapis.com/v1/people/me/connections?pageSize=1&personFields=metadata",
             token)
       if api == "drive.googleapis.com":
         api_name = service_name = "Drive"
