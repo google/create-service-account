@@ -561,7 +561,7 @@ async def main():
       "5. Authorize the service account\n"
       "6. Create a service account key\n\n"
       "In the end, you will be prompted to download the service account key. "
-      f"This key can then be used for {TOOL_NAME}.\n\n"
+      f"This key can then be used for {TOOL_NAME_FRIENDLY}.\n\n"
       "If you would like to perform these steps manually, then you can follow "
       f"the instructions at {TOOL_HELP_CENTER_URL}."
       "\n\nPress Enter to continue or 'n' to exit: ")
