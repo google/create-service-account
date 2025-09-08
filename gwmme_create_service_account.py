@@ -75,9 +75,6 @@ USER_AGENT = f"{TOOL_NAME}_create_service_account_v{VERSION}"
 KEY_FILE = (f"{pathlib.Path.home()}/{TOOL_NAME.lower()}-service-account-key-"
             f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.json")
 
-# Zero width space character, to be used to separate URLs from punctuation.
-ZWSP = "\u200b"
-
 async def create_project():
   logging.info("Creating project...")
   project_id = f"{TOOL_NAME.lower()}-{int(time.time() * 1000)}"
@@ -347,8 +344,7 @@ async def verify_api_access():
     if disabled_apis:
       disabled_api_message = (
           "- The {} API is not enabled. Please enable it by clicking "
-          "https://console.developers.google.com/apis/api/{}/overview?project={}"
-          f"{ZWSP}."
+          "https://console.developers.google.com/apis/api/{}/overview?project={}."
       )
       for api_name in disabled_apis:
         api_id = disabled_apis[api_name]
@@ -364,7 +360,7 @@ async def verify_api_access():
       print("\nIf this is expected, then please continue. If this is not "
             "expected, then please ensure that these services are enabled for "
             "your users by visiting "
-            "https://admin.google.com/ac/appslist/core{ZWSP}.\n")
+            "https://admin.google.com/ac/appslist/core.\n")
 
     if retry_api_verification:
       answer = input(
@@ -566,7 +562,7 @@ async def main():
       "In the end, you will be prompted to download the service account key. "
       f"This key can then be used for {TOOL_NAME}.\n\n"
       "If you would like to perform these steps manually, then you can follow "
-      f"the instructions at {TOOL_HELP_CENTER_URL}{ZWSP}."
+      f"the instructions at {TOOL_HELP_CENTER_URL}."
       "\n\nPress Enter to continue or 'n' to exit: ")
 
   if response.lower() == "n":
