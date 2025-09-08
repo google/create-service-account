@@ -79,7 +79,7 @@ async def create_project():
   logging.info("Creating project...")
   project_id = f"{TOOL_NAME.lower()}-{int(time.time() * 1000)}"
   project_name = (f"{TOOL_NAME}-"
-                  f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}")
+                  f"{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
   await retryable_command(f"gcloud projects create {project_id} "
                           f"--name {project_name} --set-as-default")
   logging.info("%s successfully created \u2705", project_id)
