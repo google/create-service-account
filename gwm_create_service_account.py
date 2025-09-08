@@ -256,8 +256,11 @@ async def create_service_account():
 async def create_service_account_key():
   logging.info("Creating service acount key...")
   service_account_email = await get_service_account_email()
+  # Allowing for a long set of retries because if the org policies on the
+  # project were changed, it could take a while for them to apply.
   await retryable_command(f"gcloud iam service-accounts keys create {KEY_FILE} "
-                          f"--iam-account={service_account_email}")
+                          f"--iam-account={service_account_email}",
+                          max_num_retries=20, retry_delay=10)
   logging.info("Service account key successfully created \u2705")
 
 
