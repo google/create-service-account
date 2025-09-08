@@ -17,11 +17,12 @@
 This script streamlines the installation of GWM by automating the steps
 required for obtaining a service account key. Specifically, this script will:
 
-1. Create a GCP project.
+1. Create a GCP project
 2. Enable APIs
-3. Create a service account
-4. Authorize the service account
-5. Create and download a service account key
+3. Verify that the org policies allow creating service account keys
+4. Create a service account
+5. Authorize the service account
+6. Create and download a service account key
 """
 
 import asyncio
@@ -40,7 +41,7 @@ from httplib2 import Http
 from google.auth.exceptions import RefreshError
 from google.oauth2 import service_account
 
-VERSION = "2"
+VERSION = "3"
 
 # GCP project IDs must only contain lowercase letters, digits, or hyphens.
 # Projct IDs must start with a letter. Spaces or punctuation are not allowed.
@@ -375,7 +376,7 @@ async def verify_api_access():
       print("\nIf this is expected, then please continue. If this is not "
             "expected, then please ensure that these services are enabled for "
             "your users by visiting "
-            "<https://admin.google.com/ac/appslist/core>.\n")
+            "https://admin.google.com/ac/appslist/core{ZWSP}.\n")
 
     if retry_api_verification:
       answer = input("Press Enter to try again, 'c' to continue, or 'n' to "
@@ -566,12 +567,17 @@ async def main():
   response = input(
       "Welcome! This script will create and authorize the resources that are "
       f"necessary to use {TOOL_NAME_FRIENDLY}. The following steps will be "
-      "performed on your behalf:\n\n1. Create a Google Cloud Platform project\n"
-      "2. Enable APIs\n3. Create a service account\n4. Authorize the service "
-      "account\n5. Create a service account key\n\nIn the end, you will be "
-      "prompted to download the service account key. This key can then be used "
-      f"for {TOOL_NAME}.\n\nIf you would like to perform these steps manually, "
-      f"then you can follow the instructions at {TOOL_HELP_CENTER_URL}{ZWSP}."
+      "performed on your behalf:\n\n"
+      "1. Create a Google Cloud Platform project\n"
+      "2. Enable APIs\n"
+      "3. Verify that the org policies allow creating service account keys\n"
+      "4. Create a service account\n"
+      "5. Authorize the service account\n"
+      "6. Create a service account key\n\n"
+      "In the end, you will be prompted to download the service account key. "
+      f"This key can then be used for {TOOL_NAME}.\n\n"
+      "If you would like to perform these steps manually, then you can follow "
+      f"the instructions at {TOOL_HELP_CENTER_URL}{ZWSP}."
       "\n\nPress Enter to continue or 'n' to exit:")
 
   if response.lower() == "n":
