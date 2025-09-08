@@ -55,6 +55,7 @@ APIS = [
     "contacts.googleapis.com",
     "migrate.googleapis.com",
     "gmail.googleapis.com",
+    "orgpolicy.googleapis.com",
     "calendar-json.googleapis.com",
     "drive.googleapis.com",
     "groupsmigration.googleapis.com",
@@ -151,6 +152,85 @@ async def enable_apis():
   enable_api_calls = map(enable_api, APIS[1:])
   await asyncio.gather(*enable_api_calls)
   logging.info("APIs successfully enabled \u2705")
+
+
+async def handle_org_policies():
+  """Checks and handles organization policies."""
+  logging.info("Checking organization policies...")
+  project_id = await get_project_id()
+  policies_to_check = [
+      "iam.disableServiceAccountKeyCreation",
+      "iam.managed.disableServiceAccountKeyCreation"
+  ]
+  enforced_policies = []
+
+  for policy in policies_to_check:
+    command = (f"gcloud org-policies describe {policy} "
+               f"--project={project_id} --effective")
+    stdout, _, return_code = await retryable_command(
+        command, suppress_errors=True)
+    if return_code == 0 and "enforced: true" in stdout.decode().lower():
+      enforced_policies.append(policy)
+
+  if not enforced_policies:
+    logging.info("No restrictive organization policies found \u2705")
+    return
+
+  logging.warning("The following organization policies are enforced: %s",
+                  ", ".join(enforced_policies))
+
+  role_added_by_script = False
+  organization_id = await get_organization_id()
+  admin_user_email = await get_admin_user_email()
+  try:
+    command = (f"gcloud organizations get-iam-policy {organization_id} "
+               "--format=json")
+    stdout, _, _ = await retryable_command(command, require_output=True)
+    iam_policy = json.loads(stdout)
+
+    is_org_admin = False
+    for binding in iam_policy.get("bindings", []):
+      if binding.get("role") == "roles/orgpolicy.policyAdmin":
+        if f"user:{admin_user_email}" in binding.get("members", []):
+          is_org_admin = True
+          break
+
+    if not is_org_admin:
+      logging.warning(
+          "The script needs to grant the 'Org Policy Administrator' role to "
+          "the current user to proceed.")
+      answer = input("Allow the script to add this role? (y/n): ")
+      if answer.lower() != "y":
+        logging.error(
+            "Permission denied. Please grant the 'Org Policy "
+            "Administrator' role to the user and re-run the script.")
+        sys.exit(1)
+
+      command = (
+          f"gcloud organizations add-iam-policy-binding {organization_id} "
+          f"--member=user:{admin_user_email} "
+          "--role=roles/orgpolicy.policyAdmin")
+      await retryable_command(command)
+      role_added_by_script = True
+      logging.info(
+          "'Org Policy Administrator' role granted successfully. \u2705")
+
+    for policy in enforced_policies:
+      command = (f"gcloud resource-manager org-policies disable-enforce "
+                 f"{policy} --project={project_id}")
+      await retryable_command(command)
+      logging.info("Policy %s disabled for project %s. \u2705", policy,
+                   project_id)
+
+  finally:
+    if role_added_by_script:
+      command = (
+          f"gcloud organizations remove-iam-policy-binding {organization_id} "
+          f"--member=user:{admin_user_email} "
+          "--role=roles/orgpolicy.policyAdmin")
+      await retryable_command(command, suppress_errors=True)
+      logging.info(
+          "'Org Policy Administrator' role removed successfully. \u2705")
 
 
 async def create_service_account():
@@ -461,6 +541,12 @@ async def get_admin_user_email():
   return admin_user_email.decode().rstrip()
 
 
+async def get_organization_id():
+  command = 'gcloud organizations list --format="value(ID)"'
+  org_id, _, _ = await retryable_command(command, require_output=True)
+  return org_id.decode().rstrip()
+
+
 def init_logger():
   # Log DEBUG level messages and above to a file
   logging.basicConfig(
@@ -497,6 +583,7 @@ async def main():
   await create_project()
   await verify_tos_accepted()
   await enable_apis()
+  await handle_org_policies()
   await create_service_account()
   await authorize_service_account()
   await create_service_account_key()
