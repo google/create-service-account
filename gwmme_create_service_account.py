@@ -172,21 +172,30 @@ async def handle_org_policies():
           break
 
     if not is_org_admin:
-      logging.warning(
-          "The script needs to grant the 'Org Policy Administrator' role to "
-          "the current user to proceed.")
-      answer = input("Allow the script to add this role? (y/n): ")
-      if answer.lower() != "y":
-        logging.error(
-            "Permission denied. Please grant the 'Org Policy "
-            "Administrator' role to the user and re-run the script.")
-        sys.exit(1)
-
-      command = (
+      add_iam_policy_binding_command = (
           f"gcloud organizations add-iam-policy-binding {organization_id} "
           f"--member=user:{admin_user_email} "
           "--role=roles/orgpolicy.policyAdmin")
-      await retryable_command(command)
+
+      logging.warning("User %s isn't an org policy admin.", admin_user_email)
+      print(
+          "The script needs to grant the 'Org Policy Administrator' role to "
+          f"the current user ({admin_user_email}) to proceed.")
+      answer = input("Press Enter to approve this, or 'n' to exit")
+      if response.lower() == "n":
+        logging.error("The user didn't allow the script to add the role.")
+        print(
+            "The script can't proceed with creating the required service "
+            f"account key without the current user ({admin_user_email}) "
+            "having the 'Org Policy Administrator' role.\n\n"
+            "To resolve this, visit "
+            "https://console.cloud.google.com/iam-admin/iam?organizationId="
+            f"{organization_id} and grant this role, or run this command:\n\n"
+            f"{add_iam_policy_binding_command}\n\n"
+            "Then, run this script again.\n")
+        sys.exit(1)
+
+      await retryable_command(add_iam_policy_binding_command)
       role_added_by_script = True
       logging.info(
           "'Org Policy Administrator' role granted successfully. \u2705")
