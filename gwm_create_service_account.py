@@ -94,10 +94,10 @@ DWD_URL_FORMAT = ("https://admin.google.com/ac/owl/domainwidedelegation?"
 USER_AGENT = f"{TOOL_NAME}_create_service_account_v{VERSION}"
 KEY_FILE = (f"{pathlib.Path.home()}/{TOOL_NAME.lower()}-service-account-key-"
             f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.json")
-OAUTH_CONSENT_SCREEN_URL_FORMAT = ("https://console.cloud.google.com/apis/"
-                                  "credentials/consent?project={}")
-CREATE_OAUTH_WEB_CLIENT_ID_URL = ("https://support.google.com/workspacemigrate/"
-                                 "answer/9222992")
+OAUTH_CONSENT_SCREEN_URL_FORMAT = (
+    "https://console.cloud.google.com/apis/credentials/consent?project={}")
+CREATE_OAUTH_WEB_CLIENT_ID_URL = (
+    "https://support.google.com/workspacemigrate/answer/9222992")
 
 # Zero width space character, to be used to separate URLs from punctuation.
 ZWSP = "\u200b"
