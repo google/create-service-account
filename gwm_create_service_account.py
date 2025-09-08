@@ -315,8 +315,8 @@ async def verify_api_access():
         # Admin SDK does not have a corresponding service.
         api_name = "Admin SDK"
         raw_api_response = execute_api_request(
-            "https://www.googleapis.com/admin/directory/v1/users/"
-            f"{admin_user_email}?fields=isAdmin", token)
+            f"https://content-admin.googleapis.com/admin/directory/v1/users/{admin_user_email}?fields=isAdmin",
+            token)
       if api == "calendar-json.googleapis.com":
         api_name = service_name = "Calendar"
         raw_api_response = execute_api_request(
@@ -337,18 +337,15 @@ async def verify_api_access():
       if api == "drive.googleapis.com":
         api_name = service_name = "Drive"
         raw_api_response = execute_api_request(
-            "https://www.googleapis.com/drive/v3/files?pageSize=1&fields=kind",
-            token)
+            "https://www.googleapis.com/drive/v3/files?pageSize=1&fields=kind", token)
       if api == "gmail.googleapis.com":
         api_name = service_name = "Gmail"
         raw_api_response = execute_api_request(
-            "https://gmail.googleapis.com/gmail/v1/users/me/labels?fields=labels.id",
-            token)
+            "https://gmail.googleapis.com/gmail/v1/users/me/labels?fields=labels.id", token)
       if api == "tasks.googleapis.com":
         api_name = service_name = "Tasks"
         raw_api_response = execute_api_request(
-            "https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=1&fields=kind",
-            token)
+            "https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=1&fields=kind", token)
 
       if is_api_disabled(raw_api_response):
         disabled_apis[api_name] = api
@@ -550,7 +547,7 @@ async def get_organization_id():
 def init_logger():
   # Log DEBUG level messages and above to a file
   logging.basicConfig(
-      filename="create_service_account.log",
+      filename=f"{TOOL_NAME}_create_service_account.log",
       format="[%(asctime)s][%(levelname)s] %(message)s",
       datefmt="%FT%TZ",
       level=logging.DEBUG)

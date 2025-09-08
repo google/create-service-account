@@ -516,7 +516,7 @@ async def get_organization_id():
 def init_logger():
   # Log DEBUG level messages and above to a file
   logging.basicConfig(
-      filename="create_service_account.log",
+      filename=f"{TOOL_NAME}_create_service_account.log",
       format="[%(asctime)s][%(levelname)s] %(message)s",
       datefmt="%FT%TZ",
       level=logging.DEBUG)
