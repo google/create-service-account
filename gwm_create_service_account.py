@@ -56,14 +56,14 @@ APIS = [
     "contacts.googleapis.com",
     "migrate.googleapis.com",
     "gmail.googleapis.com",
-    "orgpolicy.googleapis.com",
     "calendar-json.googleapis.com",
     "drive.googleapis.com",
     "groupsmigration.googleapis.com",
     "groupssettings.googleapis.com",
     "people.googleapis.com",
     "sheets.googleapis.com",
-    "tasks.googleapis.com"
+    "tasks.googleapis.com",
+    "orgpolicy.googleapis.com"  # This is required by this script.
 ]
 # List of scopes required for service account.
 SCOPES = [
@@ -135,8 +135,8 @@ async def verify_tos_accepted():
                 "Service. You can accept the terms of service by clicking "
                 "https://console.developers.google.com/terms/appsadmin and "
                 "clicking 'Accept'.\n")
-        answer = input("If you've accepted the terms of service, press Enter "
-                       "to try again or 'n' to cancel:")
+        answer = input("\u2753 If you've accepted the terms of service, press "
+                       "Enter to try again or 'n' to cancel: ")
         if answer.lower() == "n":
           sys.exit(0)
       else:
@@ -205,9 +205,9 @@ async def handle_org_policies():
       logging.warning("User %s isn't an org policy admin.", admin_user_email)
       print(
           "The script needs to grant the 'Org Policy Administrator' role to "
-          f"the current user ({admin_user_email}) to proceed.")
-      answer = input("Press Enter to approve this, or 'n' to exit")
-      if response.lower() == "n":
+          f"the current user ({admin_user_email}) to proceed.\n")
+      answer = input("\u2753 Press Enter to approve this, or 'n' to exit: ")
+      if answer.lower() == "n":
         logging.error("The user didn't allow the script to add the role.")
         print(
             "The script can't proceed with creating the required service "
@@ -265,9 +265,9 @@ async def authorize_service_account():
   service_account_id = await get_service_account_id()
   scopes = urllib.parse.quote(",".join(SCOPES), safe="")
   authorize_url = DWD_URL_FORMAT.format(service_account_id, scopes)
-  input(f"\nBefore using {TOOL_NAME_FRIENDLY}, you must authorize the service "
-        "account to perform actions on behalf of your users. You can do so by "
-        f"clicking:\n\n{authorize_url}\n\nAfter clicking 'Authorize', return "
+  input(f"\n\u2753 Before using {TOOL_NAME_FRIENDLY}, you must authorize the "
+        "service account to perform actions on behalf of your users. Visit "
+        f"this link:\n\n{authorize_url}\n\nAfter clicking 'Authorize', return "
         "here and press Enter to continue.")
 
 
@@ -297,8 +297,9 @@ async def verify_service_account_authorization():
             "generally takes less than 1 hour. However, in rare cases, it can "
             "take up to 24 hours.")
       print(f"\n{authorize_url}\n")
-      answer = input("Press Enter to try again, 'c' to continue, or 'n' to "
-                     "cancel:")
+      answer = input(
+          "\u2753 "
+          "Press Enter to try again, 'c' to continue, or 'n' to cancel: ")
       if answer.lower == "c":
         scopes_are_authorized = True
       if answer.lower() == "n":
@@ -388,8 +389,9 @@ async def verify_api_access():
             "https://admin.google.com/ac/appslist/core{ZWSP}.\n")
 
     if retry_api_verification:
-      answer = input("Press Enter to try again, 'c' to continue, or 'n' to "
-                     "cancel:")
+      answer = input(
+          "\u2753 "
+          "Press Enter to try again, 'c' to continue, or 'n' to cancel: ")
       if answer.lower() == "c":
         retry_api_verification = False
       if answer.lower() == "n":
@@ -587,7 +589,7 @@ async def main():
       f"This key can then be used for {TOOL_NAME}.\n\n"
       "If you would like to perform these steps manually, then you can follow "
       f"the instructions at {TOOL_HELP_CENTER_URL}{ZWSP}."
-      "\n\nPress Enter to continue or 'n' to exit:")
+      "\n\nPress Enter to continue or 'n' to exit: ")
 
   if response.lower() == "n":
     sys.exit(0)
