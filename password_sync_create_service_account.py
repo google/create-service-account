@@ -187,9 +187,19 @@ async def handle_org_policies():
           "'Org Policy Administrator' role granted successfully. \u2705")
 
     for policy in enforced_policies:
-      command = (f"gcloud resource-manager org-policies disable-enforce "
-                 f"{policy} --project={project_id}")
-      await retryable_command(command)
+      if policy.startswith("iam.managed"):
+        command = "gcloud org-policies set-policy /dev/stdin"
+        stdin_text = (f"""
+name: projects/{project_id}/policies/{policy}
+spec:
+  rules:
+    - enforce: false
+""")
+      else:
+        command = (f"gcloud resource-manager org-policies disable-enforce "
+                   f"{policy} --project={project_id}")
+        stdin_text = None
+      await retryable_command(command, stdin=stdin_text)
       logging.info("Policy %s disabled for project %s. \u2705", policy,
                    project_id)
 
@@ -458,15 +468,19 @@ async def retryable_command(command,
                             max_num_retries=3,
                             retry_delay=5,
                             suppress_errors=False,
-                            require_output=False):
+                            require_output=False,
+                            stdin=None):
   num_tries = 1
   while num_tries <= max_num_retries:
     logging.debug("Executing command (attempt %d): %s", num_tries, command)
+    if stdin is not None:
+      logging.debug("stdin: %s", stdin)
     process = await asyncio.create_subprocess_shell(
         command,
+        stdin=asyncio.subprocess.PIPE if stdin else None,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
-    stdout, stderr = await process.communicate()
+    stdout, stderr = await process.communicate(input=stdin.encode() if stdin else None)
     return_code = process.returncode
 
     logging.debug("stdout: %s", stdout.decode())
@@ -483,8 +497,12 @@ async def retryable_command(command,
     elif suppress_errors:
       return (stdout, stderr, return_code)
     else:
-      logging.critical("Failed to execute command: %s\n\nstderr:\n`%s`",
-                       command, stderr.decode())
+      if stdin is not None:
+        logging.critical("Failed to execute command: %s\n\nstdin:\n`%s`\n\nstderr:\n`%s`",
+                         command, stdin, stderr.decode())
+      else:
+        logging.critical("Failed to execute command: %s\n\nstderr:\n`%s`",
+                         command, stderr.decode())
       sys.exit(return_code)
 
 
