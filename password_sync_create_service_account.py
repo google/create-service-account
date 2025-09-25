@@ -18,11 +18,12 @@ This script streamlines the installation of Password Sync by automating the
 steps required for obtaining a service account key. Specifically, this script
 will:
 
-1. Create a GCP project.
+1. Create a GCP project
 2. Enable APIs
-3. Create a service account
-4. Authorize the service account
-5. Create and download a service account key
+3. Verify that the org policies allow creating service account keys
+4. Create a service account
+5. Authorize the service account
+6. Create and download a service account key
 """
 
 import asyncio
@@ -41,7 +42,7 @@ from httplib2 import Http
 from google.auth.exceptions import RefreshError
 from google.oauth2 import service_account
 
-VERSION = "2"
+VERSION = "3"
 
 # GCP project IDs must only contain lowercase letters, digits, or hyphens.
 # Projct IDs must start with a letter. Spaces or punctuation are not allowed.
@@ -52,7 +53,8 @@ TOOL_HELP_CENTER_URL = "https://support.google.com/a/answer/7378726"
 APIS = [
     # If admin.googleapis.com is to be included, then it must be the first in
     # this list.
-    "admin.googleapis.com"
+    "admin.googleapis.com",
+    "orgpolicy.googleapis.com"  # This is required by this script.
 ]
 # List of scopes required for service account.
 SCOPES = ["https://www.googleapis.com/auth/admin.directory.user"]
@@ -61,9 +63,6 @@ DWD_URL_FORMAT = ("https://admin.google.com/ac/owl/domainwidedelegation?"
 USER_AGENT = f"{TOOL_NAME}_create_service_account_v{VERSION}"
 KEY_FILE = (f"{pathlib.Path.home()}/{TOOL_NAME.lower()}-service-account-key-"
             f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.json")
-
-# Zero width space character, to be used to separate URLs from punctuation.
-ZWSP = "\u200b"
 
 async def create_project():
   logging.info("Creating project...")
@@ -97,8 +96,8 @@ async def verify_tos_accepted():
                 "Service. You can accept the terms of service by clicking "
                 "https://console.developers.google.com/terms/appsadmin and "
                 "clicking 'Accept'.\n")
-        answer = input("If you've accepted the terms of service, press Enter "
-                       "to try again or 'n' to cancel:")
+        answer = input("\u2753 If you've accepted the terms of service, press "
+                       "Enter to try again or 'n' to cancel: ")
         if answer.lower() == "n":
           sys.exit(0)
       else:
@@ -117,6 +116,104 @@ async def enable_apis():
   logging.info("APIs successfully enabled \u2705")
 
 
+async def handle_org_policies():
+  """Checks and handles organization policies."""
+  logging.info("Checking organization policies...")
+  project_id = await get_project_id()
+  policies_to_check = [
+      "iam.disableServiceAccountKeyCreation",
+      "iam.managed.disableServiceAccountKeyCreation"
+  ]
+  enforced_policies = []
+
+  for policy in policies_to_check:
+    command = (f"gcloud org-policies describe {policy} "
+               f"--project={project_id} --effective")
+    stdout, _, return_code = await retryable_command(
+        command, suppress_errors=True)
+    if return_code == 0 and "enforce: true" in stdout.decode().lower():
+      enforced_policies.append(policy)
+
+  if not enforced_policies:
+    logging.info("No restrictive organization policies found \u2705")
+    return
+
+  logging.warning("The following organization policies are enforced: %s",
+                  ", ".join(enforced_policies))
+
+  role_added_by_script = False
+  organization_id = await get_organization_id()
+  admin_user_email = await get_admin_user_email()
+  try:
+    command = (f"gcloud organizations get-iam-policy {organization_id} "
+               "--format=json")
+    stdout, _, _ = await retryable_command(command, require_output=True)
+    iam_policy = json.loads(stdout)
+
+    is_org_admin = False
+    for binding in iam_policy.get("bindings", []):
+      if binding.get("role") == "roles/orgpolicy.policyAdmin":
+        if f"user:{admin_user_email}" in binding.get("members", []):
+          is_org_admin = True
+          break
+
+    if not is_org_admin:
+      add_iam_policy_binding_command = (
+          f"gcloud organizations add-iam-policy-binding {organization_id} "
+          f"--member=user:{admin_user_email} "
+          "--role=roles/orgpolicy.policyAdmin")
+
+      logging.warning("User %s isn't an org policy admin.", admin_user_email)
+      print(
+          "The script needs to grant the 'Org Policy Administrator' role to "
+          f"the current user ({admin_user_email}) to proceed.\n")
+      answer = input("\u2753 Press Enter to approve this, or 'n' to exit: ")
+      if answer.lower() == "n":
+        logging.error("The user didn't allow the script to add the role.")
+        print(
+            "The script can't proceed with creating the required service "
+            f"account key without the current user ({admin_user_email}) "
+            "having the 'Org Policy Administrator' role.\n\n"
+            "To resolve this, visit "
+            "https://console.cloud.google.com/iam-admin/iam?organizationId="
+            f"{organization_id} and grant this role, or run this command:\n\n"
+            f"{add_iam_policy_binding_command}\n\n"
+            "Then, run this script again.\n")
+        sys.exit(1)
+
+      await retryable_command(add_iam_policy_binding_command)
+      role_added_by_script = True
+      logging.info(
+          "'Org Policy Administrator' role granted successfully. \u2705")
+
+    for policy in enforced_policies:
+      if policy.startswith("iam.managed"):
+        command = "gcloud org-policies set-policy /dev/stdin"
+        stdin_text = (f"""
+name: projects/{project_id}/policies/{policy}
+spec:
+  rules:
+    - enforce: false
+""")
+      else:
+        command = (f"gcloud resource-manager org-policies disable-enforce "
+                   f"{policy} --project={project_id}")
+        stdin_text = None
+      await retryable_command(command, stdin=stdin_text)
+      logging.info("Policy %s disabled for project %s. \u2705", policy,
+                   project_id)
+
+  finally:
+    if role_added_by_script:
+      command = (
+          f"gcloud organizations remove-iam-policy-binding {organization_id} "
+          f"--member=user:{admin_user_email} "
+          "--role=roles/orgpolicy.policyAdmin")
+      await retryable_command(command, suppress_errors=True)
+      logging.info(
+          "'Org Policy Administrator' role removed successfully. \u2705")
+
+
 async def create_service_account():
   logging.info("Creating service account...")
   service_account_name = f"{TOOL_NAME.lower()}-service-account"
@@ -130,8 +227,11 @@ async def create_service_account():
 async def create_service_account_key():
   logging.info("Creating service acount key...")
   service_account_email = await get_service_account_email()
+  # Allowing for a long set of retries because if the org policies on the
+  # project were changed, it could take a while for them to apply.
   await retryable_command(f"gcloud iam service-accounts keys create {KEY_FILE} "
-                          f"--iam-account={service_account_email}")
+                          f"--iam-account={service_account_email}",
+                          max_num_retries=20, retry_delay=10)
   logging.info("Service account key successfully created \u2705")
 
 
@@ -139,9 +239,9 @@ async def authorize_service_account():
   service_account_id = await get_service_account_id()
   scopes = urllib.parse.quote(",".join(SCOPES), safe="")
   authorize_url = DWD_URL_FORMAT.format(service_account_id, scopes)
-  input(f"\nBefore using {TOOL_NAME_FRIENDLY}, you must authorize the service "
-        "account to perform actions on behalf of your users. You can do so by "
-        f"clicking:\n\n{authorize_url}\n\nAfter clicking 'Authorize', return "
+  input(f"\n\u2753 Before using {TOOL_NAME_FRIENDLY}, you must authorize the "
+        "service account to perform actions on behalf of your users. Visit "
+        f"this link:\n\n{authorize_url}\n\nAfter clicking 'Authorize', return "
         "here and press Enter to continue.")
 
 
@@ -171,8 +271,9 @@ async def verify_service_account_authorization():
             "generally takes less than 1 hour. However, in rare cases, it can "
             "take up to 24 hours.")
       print(f"\n{authorize_url}\n")
-      answer = input("Press Enter to try again, 'c' to continue, or 'n' to "
-                     "cancel:")
+      answer = input(
+          "\u2753 "
+          "Press Enter to try again, 'c' to continue, or 'n' to cancel: ")
       if answer.lower == "c":
         scopes_are_authorized = True
       if answer.lower() == "n":
@@ -199,7 +300,7 @@ async def verify_api_access():
         # Admin SDK does not have a corresponding service.
         api_name = "Admin SDK"
         raw_api_response = execute_api_request(
-            f"https://content-admin.googleapis.com/admin/directory/v1/users/{admin_user_email}?fields=isAdmin",
+            f"https://admin.googleapis.com/admin/directory/v1/users/{admin_user_email}?fields=isAdmin",
             token)
       if api == "calendar-json.googleapis.com":
         api_name = service_name = "Calendar"
@@ -211,6 +312,12 @@ async def verify_api_access():
         api_name = "Contacts"
         raw_api_response = execute_api_request(
             "https://www.google.com/m8/feeds/contacts/a.com/full/invalid_contact",
+            token)
+      if api == "people.googleapis.com":
+        # People (Contacts) does not have a corresponding service.
+        api_name = "People"
+        raw_api_response = execute_api_request(
+            "https://people.googleapis.com/v1/people/me/connections?pageSize=1&personFields=metadata",
             token)
       if api == "drive.googleapis.com":
         api_name = service_name = "Drive"
@@ -236,8 +343,7 @@ async def verify_api_access():
     if disabled_apis:
       disabled_api_message = (
           "- The {} API is not enabled. Please enable it by clicking "
-          "https://console.developers.google.com/apis/api/{}/overview?project={}"
-          f"{ZWSP}."
+          "https://console.developers.google.com/apis/api/{}/overview?project={}."
       )
       for api_name in disabled_apis:
         api_id = disabled_apis[api_name]
@@ -256,8 +362,9 @@ async def verify_api_access():
             "https://admin.google.com/ac/appslist/core.\n")
 
     if retry_api_verification:
-      answer = input("Press Enter to try again, 'c' to continue, or 'n' to "
-                     "cancel:")
+      answer = input(
+          "\u2753 "
+          "Press Enter to try again, 'c' to continue, or 'n' to cancel: ")
       if answer.lower() == "c":
         retry_api_verification = False
       if answer.lower() == "n":
@@ -361,15 +468,19 @@ async def retryable_command(command,
                             max_num_retries=3,
                             retry_delay=5,
                             suppress_errors=False,
-                            require_output=False):
+                            require_output=False,
+                            stdin=None):
   num_tries = 1
   while num_tries <= max_num_retries:
     logging.debug("Executing command (attempt %d): %s", num_tries, command)
+    if stdin is not None:
+      logging.debug("stdin: %s", stdin)
     process = await asyncio.create_subprocess_shell(
         command,
+        stdin=asyncio.subprocess.PIPE if stdin else None,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
-    stdout, stderr = await process.communicate()
+    stdout, stderr = await process.communicate(input=stdin.encode() if stdin else None)
     return_code = process.returncode
 
     logging.debug("stdout: %s", stdout.decode())
@@ -386,7 +497,12 @@ async def retryable_command(command,
     elif suppress_errors:
       return (stdout, stderr, return_code)
     else:
-      logging.critical("Failed to execute command: `%s`", stderr.decode())
+      if stdin is not None:
+        logging.critical("Failed to execute command: %s\n\nstdin:\n`%s`\n\nstderr:\n`%s`",
+                         command, stdin, stderr.decode())
+      else:
+        logging.critical("Failed to execute command: %s\n\nstderr:\n`%s`",
+                         command, stderr.decode())
       sys.exit(return_code)
 
 
@@ -416,6 +532,12 @@ async def get_admin_user_email():
   return admin_user_email.decode().rstrip()
 
 
+async def get_organization_id():
+  command = 'gcloud organizations list --format="value(ID)"'
+  org_id, _, _ = await retryable_command(command, require_output=True)
+  return org_id.decode().rstrip()
+
+
 def init_logger():
   # Log DEBUG level messages and above to a file
   logging.basicConfig(
@@ -438,13 +560,18 @@ async def main():
   response = input(
       "Welcome! This script will create and authorize the resources that are "
       f"necessary to use {TOOL_NAME_FRIENDLY}. The following steps will be "
-      "performed on your behalf:\n\n1. Create a Google Cloud Platform project\n"
-      "2. Enable APIs\n3. Create a service account\n4. Authorize the service "
-      "account\n5. Create a service account key\n\nIn the end, you will be "
-      "prompted to download the service account key. This key can then be used "
-      f"for {TOOL_NAME}.\n\nIf you would like to perform these steps manually, "
-      f"then you can follow the instructions at {TOOL_HELP_CENTER_URL}{ZWSP}."
-      "\n\nPress Enter to continue or 'n' to exit:")
+      "performed on your behalf:\n\n"
+      "1. Create a Google Cloud Platform project\n"
+      "2. Enable APIs\n"
+      "3. Verify that the org policies allow creating service account keys\n"
+      "4. Create a service account\n"
+      "5. Authorize the service account\n"
+      "6. Create a service account key\n\n"
+      "In the end, you will be prompted to download the service account key. "
+      f"This key can then be used for {TOOL_NAME_FRIENDLY}.\n\n"
+      "If you would like to perform these steps manually, then you can follow "
+      f"the instructions at {TOOL_HELP_CENTER_URL}."
+      "\n\nPress Enter to continue or 'n' to exit: ")
 
   if response.lower() == "n":
     sys.exit(0)
@@ -452,6 +579,7 @@ async def main():
   await create_project()
   await verify_tos_accepted()
   await enable_apis()
+  await handle_org_policies()
   await create_service_account()
   await authorize_service_account()
   await create_service_account_key()
